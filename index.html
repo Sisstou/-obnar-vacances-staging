@@ -5014,6 +5014,11 @@ function resetSearch(){
  document.getElementById('maxPriceFilter').value = '';
  document.getElementById('priceFilterMessage').textContent = '';
 
+ selectedPropertyCategory = 'all';
+ document.querySelectorAll('.property-category').forEach(button=>{
+  button.classList.toggle('active',button.dataset.category==='all');
+ });
+
  renderProperties();
 
 }
