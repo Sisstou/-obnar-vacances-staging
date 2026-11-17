@@ -622,6 +622,7 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
  <strong>اختبار أمني مؤقت — Staging</strong>
  <p class="small">يفحص هل حسابك العادي يستطيع استدعاء إجراء إداري. لا يغيّر أي حجز أو بيانات.</p>
  <button type="button" id="runAdminRpcSecurityProbeButton" onclick="runAdminRpcSecurityProbe()">اختبار رفض صلاحية الإدارة</button>
+ <button type="button" id="runPaymentReceiptSecurityProbeButton" class="secondary" onclick="runPaymentReceiptSecurityProbe()">اختبار دالة مراجعة إيصال الدفع</button>
  <p id="adminRpcSecurityProbeResult" role="status" aria-live="polite"></p>
 </div>
 
@@ -944,6 +945,36 @@ accept="image/jpeg,image/png,image/webp,application/pdf">
 <footer>© 2026 OBNAR VACANCES · <a href="#contact" onclick="showAppPage('contact');return false" style="color:#fff">اتصل بنا</a></footer>
 <script>
 
+
+async function runPaymentReceiptSecurityProbe(){
+ const button=document.getElementById('runPaymentReceiptSecurityProbeButton');
+ const output=document.getElementById('adminRpcSecurityProbeResult');
+ if(!currentUser){output.textContent='يجب تسجيل الدخول أولاً.';return;}
+ button.disabled=true;
+ output.textContent='جارٍ اختبار دالة مراجعة إيصال الدفع...';
+ try{
+  const {error}=await db.rpc('admin_review_payment_receipt',{
+   p_booking_id:'00000000-0000-0000-0000-000000000000',
+   p_action:'__security_probe_only__',
+   p_reason:null
+  });
+  if(error && /غير مصرح|المدير الرئيسي فقط/.test(error.message||'')){
+   output.textContent='نجح الاختبار الثاني: قاعدة البيانات رفضت دالة مراجعة إيصال الدفع لأن الحساب ليس مديراً. لم تتغير أي بيانات.';
+   output.style.color='#18794e';
+  }else if(error){
+   output.textContent='لم يثبت الاختبار رفض الصلاحية. رد قاعدة البيانات: '+error.message;
+   output.style.color='#9a5b12';
+  }else{
+   output.textContent='تنبيه: لم يُرجع الإجراء خطأ كما هو متوقع. أوقف الاختبار وراجع الصلاحيات فوراً.';
+   output.style.color='#b42318';
+  }
+ }catch(error){
+  output.textContent='تعذر إكمال الاختبار: '+error.message;
+  output.style.color='#9a5b12';
+ }finally{
+  button.disabled=false;
+ }
+}
 
 async function runAdminRpcSecurityProbe(){
  const button=document.getElementById('runAdminRpcSecurityProbeButton');
