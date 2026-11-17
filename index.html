@@ -622,7 +622,7 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
  <strong>اختبار أمني مؤقت — Staging</strong>
  <p class="small">يفحص هل حسابك العادي يستطيع استدعاء إجراء إداري. لا يغيّر أي حجز أو بيانات.</p>
  <button type="button" id="runAdminRpcSecurityProbeButton" onclick="runAdminRpcSecurityProbe()">اختبار رفض صلاحية الإدارة</button>
- <button type="button" id="runRefundExecutionSecurityProbeButton" class="secondary" onclick="runRefundExecutionSecurityProbe()">اختبار دالة مراجعة تنفيذ الاسترداد</button>
+ <button type="button" id="runOwnerVerificationSecurityProbeButton" class="secondary" onclick="runOwnerVerificationSecurityProbe()">اختبار اعتماد توثيق المالك</button>
  <p id="adminRpcSecurityProbeResult" role="status" aria-live="polite"></p>
 </div>
 
@@ -946,20 +946,18 @@ accept="image/jpeg,image/png,image/webp,application/pdf">
 <script>
 
 
-async function runRefundExecutionSecurityProbe(){
- const button=document.getElementById('runRefundExecutionSecurityProbeButton');
+async function runOwnerVerificationSecurityProbe(){
+ const button=document.getElementById('runOwnerVerificationSecurityProbeButton');
  const output=document.getElementById('adminRpcSecurityProbeResult');
  if(!currentUser){output.textContent='يجب تسجيل الدخول أولاً.';return;}
  button.disabled=true;
- output.textContent='جارٍ اختبار دالة مراجعة تنفيذ الاسترداد...';
+ output.textContent='جارٍ اختبار دالة اعتماد توثيق المالك...';
  try{
-  const {error}=await db.rpc('admin_review_refund_execution',{
-   p_cancellation_id:'00000000-0000-0000-0000-000000000000',
-   p_action:'__security_probe_only__',
-   p_notes:null
+  const {error}=await db.rpc('approve_owner_verification',{
+   p_request_id:'00000000-0000-0000-0000-000000000000'
   });
-  if(error && /Main admin access required/.test(error.message||'')){
-   output.textContent='نجح الاختبار الرابع: قاعدة البيانات رفضت دالة مراجعة تنفيذ الاسترداد لأن الحساب ليس المدير الرئيسي. لم تتغير أي بيانات.';
+  if(error && /غير مسموح/.test(error.message||'')){
+   output.textContent='نجح الاختبار الخامس: قاعدة البيانات رفضت دالة اعتماد توثيق المالك لأن الحساب ليس مديراً رئيسياً. لم تتغير أي بيانات.';
    output.style.color='#18794e';
   }else if(error){
    output.textContent='لم يثبت الاختبار رفض الصلاحية. رد قاعدة البيانات: '+error.message;
@@ -975,6 +973,8 @@ async function runRefundExecutionSecurityProbe(){
   button.disabled=false;
  }
 }
+
+
 
 
 
