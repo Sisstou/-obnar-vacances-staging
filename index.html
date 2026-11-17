@@ -715,7 +715,8 @@ accept="image/jpeg,image/png,image/webp,application/pdf">
  </div>
 </div>
 <div class="owner-form-actions">
- <button type="button" onclick="createProperty()">إرسال الإقامة للمراجعة</button>
+ <button type="button" class="secondary" onclick="createProperty('draft')">حفظ كمسودة</button>
+ <button type="button" onclick="createProperty('submit')">إرسال الإقامة للمراجعة</button>
 </div>
 </div>
 <div id="ownerImagesArea" class="hidden">
@@ -1976,7 +1977,7 @@ function capacityTextIsValid(choice,value){
  return choice!=='' && Number.isFinite(value);
 }
 
-async function createProperty(){
+async function createProperty(mode = 'submit'){
 
  try{
 
@@ -1999,6 +2000,7 @@ async function createProperty(){
   const priceText=priceInput.value.trim();
   const price=priceText===''?NaN:Number(priceText);
   const photos = Array.from(document.getElementById('propertyPhotos').files);
+  const saveAsDraft = mode === 'draft';
 
   if(!titleAr || !titleFr || !locationId || !capacityTextIsValid(capacityChoice,capacity)){
    throw new Error('أكمل الاسم بالعربية والفرنسية والمنطقة وحدد السعة بشكل صحيح.');
@@ -2020,8 +2022,8 @@ async function createProperty(){
    throw new Error('أدخل السعر لليلة. يجب أن يكون رقماً صحيحاً أو عشرياً غير سالب.');
   }
 
-  if(photos.length === 0){
-   throw new Error('أضف صورة واحدة على الأقل.');
+  if(!saveAsDraft && photos.length === 0){
+   throw new Error('أضف صورة واحدة على الأقل قبل إرسال الإقامة للمراجعة.');
   }
 
   if(photos.length > 10){
@@ -2055,6 +2057,7 @@ async function createProperty(){
     capacity,
     price_per_night:price,
     currency:'DZD',
+    status:'draft',
    
    })
    .select()
@@ -2088,21 +2091,29 @@ async function createProperty(){
 
   }
 
-  const {error:imageError} = await db
-   .from('property_images')
-   .insert(imageRows);
-
-  if(imageError) throw imageError;
+  if(imageRows.length){
+   const {error:imageError} = await db
+    .from('property_images')
+    .insert(imageRows);
+   if(imageError) throw imageError;
+  }
   if(selectedAmenities.length){const rows=selectedAmenities.map(amenity_id=>({property_id:property.id,amenity_id}));const {error:amenityError}=await db.from('property_amenities').insert(rows);if(amenityError)throw amenityError;}
 
-  const {error:submitError} = await db
-   .from('properties')
-   .update({status:'pending'})
-   .eq('id',property.id);
+  if(saveAsDraft){
+   msg('تم حفظ الإقامة كمسودة. لن تظهر للزوار ولن تُرسل إلى الإدارة حتى تضغط إرسال للمراجعة.');
+  }else{
+   const {error:submitError} = await db
+    .from('properties')
+    .update({status:'pending'})
+    .eq('id',property.id)
+    .eq('owner_id',currentUser.id)
+    .eq('status','draft');
+   if(submitError) throw submitError;
+   msg('تم إرسال الإقامة والصور إلى الإدارة للمراجعة بنجاح.');
+  }
 
-  if(submitError) throw submitError;
-
-  msg('تم إرسال الإقامة والصور إلى الإدارة للمراجعة بنجاح.');
+  document.getElementById('propertyPhotos').value = '';
+  await loadOwnerProperties();
 
  }catch(e){
 
@@ -2110,6 +2121,37 @@ async function createProperty(){
 
  }
 
+}
+
+async function submitDraftProperty(propertyId,button){
+ if(!currentUser || !currentProfile || currentProfile.role!=='owner'){
+  msg('هذه الخدمة متاحة للمالكين الموثقين فقط.');
+  return;
+ }
+ if(!confirm('هل تريد إرسال هذه المسودة إلى الإدارة للمراجعة؟')) return;
+ if(button) button.disabled=true;
+ try{
+  const {count,error:countError}=await db.from('property_images')
+   .select('id',{count:'exact',head:true})
+   .eq('property_id',propertyId);
+  if(countError) throw countError;
+  if(!count) throw new Error('أضف صورة واحدة على الأقل قبل إرسال الإقامة للمراجعة.');
+  const {data,error}=await db.from('properties')
+   .update({status:'pending'})
+   .eq('id',propertyId)
+   .eq('owner_id',currentUser.id)
+   .eq('status','draft')
+   .select('id')
+   .maybeSingle();
+  if(error) throw error;
+  if(!data) throw new Error('لم يتم إرسال المسودة. تحقق من حالتها أو صلاحيات الحساب.');
+  msg('تم إرسال الإقامة إلى الإدارة للمراجعة.');
+  await loadOwnerProperties();
+  await loadProperties();
+ }catch(e){
+  msg('تعذر إرسال المسودة: '+e.message);
+  if(button) button.disabled=false;
+ }
 }
 
 let ownerPropertiesLoading = false;
@@ -2157,6 +2199,13 @@ async function loadOwnerProperties(){
    status.className = 'small';
    status.textContent = 'حالة الإقامة: '+property.status;
    card.appendChild(status);
+   if(property.status==='draft'){
+    const submitDraftBtn=document.createElement('button');
+    submitDraftBtn.type='button';
+    submitDraftBtn.textContent='إرسال المسودة للمراجعة';
+    submitDraftBtn.onclick=()=>submitDraftProperty(property.id,submitDraftBtn);
+    card.appendChild(submitDraftBtn);
+   }
    const {data:images,error:imageError} = await db.from('property_images')
     .select('id,storage_path,is_cover,display_order')
     .eq('property_id',property.id)
