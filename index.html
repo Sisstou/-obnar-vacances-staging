@@ -618,14 +618,6 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
 </div>
 
 <p id="userInfo"></p>
-<div id="adminRpcSecurityProbe" class="panel" style="margin:14px 0;border:1px dashed #c9a45c">
- <strong>اختبار أمني مؤقت — Staging</strong>
- <p class="small">يفحص هل حسابك العادي يستطيع استدعاء إجراء إداري. لا يغيّر أي حجز أو بيانات.</p>
- <button type="button" id="runAdminRpcSecurityProbeButton" onclick="runAdminRpcSecurityProbe()">اختبار رفض صلاحية الإدارة</button>
- <button type="button" id="runOwnerVerificationSecurityProbeButton" class="secondary" onclick="runOwnerVerificationSecurityProbe()">اختبار اعتماد توثيق المالك</button>
- <p id="adminRpcSecurityProbeResult" role="status" aria-live="polite"></p>
-</div>
-
 <button type="button" id="adminDashboardLink" class="hidden" onclick="openAdminDashboard()">لوحة تحكم المدير الرئيسي</button>
 
 <hr>
@@ -945,70 +937,6 @@ accept="image/jpeg,image/png,image/webp,application/pdf">
 <footer>© 2026 OBNAR VACANCES · <a href="#contact" onclick="showAppPage('contact');return false" style="color:#fff">اتصل بنا</a></footer>
 <script>
 
-
-async function runOwnerVerificationSecurityProbe(){
- const button=document.getElementById('runOwnerVerificationSecurityProbeButton');
- const output=document.getElementById('adminRpcSecurityProbeResult');
- if(!currentUser){output.textContent='يجب تسجيل الدخول أولاً.';return;}
- button.disabled=true;
- output.textContent='جارٍ اختبار دالة اعتماد توثيق المالك...';
- try{
-  const {error}=await db.rpc('approve_owner_verification',{
-   p_request_id:'00000000-0000-0000-0000-000000000000'
-  });
-  if(error && /غير مسموح/.test(error.message||'')){
-   output.textContent='نجح الاختبار الخامس: قاعدة البيانات رفضت دالة اعتماد توثيق المالك لأن الحساب ليس مديراً رئيسياً. لم تتغير أي بيانات.';
-   output.style.color='#18794e';
-  }else if(error){
-   output.textContent='لم يثبت الاختبار رفض الصلاحية. رد قاعدة البيانات: '+error.message;
-   output.style.color='#9a5b12';
-  }else{
-   output.textContent='تنبيه: لم يُرجع الإجراء خطأ كما هو متوقع. أوقف الاختبار وراجع الصلاحيات فوراً.';
-   output.style.color='#b42318';
-  }
- }catch(error){
-  output.textContent='تعذر إكمال الاختبار: '+error.message;
-  output.style.color='#9a5b12';
- }finally{
-  button.disabled=false;
- }
-}
-
-
-
-
-
-
-
-async function runAdminRpcSecurityProbe(){
- const button=document.getElementById('runAdminRpcSecurityProbeButton');
- const output=document.getElementById('adminRpcSecurityProbeResult');
- if(!currentUser){output.textContent='يجب تسجيل الدخول أولاً.';return;}
- button.disabled=true;
- output.textContent='جارٍ اختبار رفض الصلاحية...';
- try{
-  const {error}=await db.rpc('admin_review_owner_booking',{
-   p_booking_id:'00000000-0000-0000-0000-000000000000',
-   p_action:'__security_probe_only__',
-   p_reason:null
-  });
-  if(error && /غير مصرح|المدير الرئيسي فقط/.test(error.message||'')){
-   output.textContent='نجح الاختبار: قاعدة البيانات رفضت استدعاء الإجراء الإداري لأن الحساب ليس مديراً. لم تتغير أي بيانات.';
-   output.style.color='#18794e';
-  }else if(error){
-   output.textContent='لم يثبت الاختبار رفض الصلاحية. رد قاعدة البيانات: '+error.message;
-   output.style.color='#9a5b12';
-  }else{
-   output.textContent='تنبيه: لم يُرجع الإجراء خطأ كما هو متوقع. أوقف الاختبار وراجع الصلاحيات فوراً.';
-   output.style.color='#b42318';
-  }
- }catch(error){
-  output.textContent='تعذر إكمال الاختبار: '+error.message;
-  output.style.color='#9a5b12';
- }finally{
-  button.disabled=false;
- }
-}
 
 async function openAdminDashboard(){
  showAppPage('adminDashboard');
