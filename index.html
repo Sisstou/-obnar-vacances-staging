@@ -622,7 +622,7 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
  <strong>اختبار أمني مؤقت — Staging</strong>
  <p class="small">يفحص هل حسابك العادي يستطيع استدعاء إجراء إداري. لا يغيّر أي حجز أو بيانات.</p>
  <button type="button" id="runAdminRpcSecurityProbeButton" onclick="runAdminRpcSecurityProbe()">اختبار رفض صلاحية الإدارة</button>
- <button type="button" id="runPaymentReceiptSecurityProbeButton" class="secondary" onclick="runPaymentReceiptSecurityProbe()">اختبار دالة مراجعة إيصال الدفع</button>
+ <button type="button" id="runCancellationSecurityProbeButton" class="secondary" onclick="runCancellationSecurityProbe()">اختبار دالة مراجعة طلب الإلغاء</button>
  <p id="adminRpcSecurityProbeResult" role="status" aria-live="polite"></p>
 </div>
 
@@ -946,20 +946,21 @@ accept="image/jpeg,image/png,image/webp,application/pdf">
 <script>
 
 
-async function runPaymentReceiptSecurityProbe(){
- const button=document.getElementById('runPaymentReceiptSecurityProbeButton');
+async function runCancellationSecurityProbe(){
+ const button=document.getElementById('runCancellationSecurityProbeButton');
  const output=document.getElementById('adminRpcSecurityProbeResult');
  if(!currentUser){output.textContent='يجب تسجيل الدخول أولاً.';return;}
  button.disabled=true;
- output.textContent='جارٍ اختبار دالة مراجعة إيصال الدفع...';
+ output.textContent='جارٍ اختبار دالة مراجعة طلب الإلغاء...';
  try{
-  const {error}=await db.rpc('admin_review_payment_receipt',{
-   p_booking_id:'00000000-0000-0000-0000-000000000000',
-   p_action:'__security_probe_only__',
-   p_reason:null
+  const {error}=await db.rpc('admin_review_booking_cancellation',{
+   p_cancellation_id:'00000000-0000-0000-0000-000000000000',
+   p_cancel_action:'__security_probe_only__',
+   p_refund_action:'none',
+   p_notes:null
   });
-  if(error && /غير مصرح|المدير الرئيسي فقط/.test(error.message||'')){
-   output.textContent='نجح الاختبار الثاني: قاعدة البيانات رفضت دالة مراجعة إيصال الدفع لأن الحساب ليس مديراً. لم تتغير أي بيانات.';
+  if(error && /Main admin access required/.test(error.message||'')){
+   output.textContent='نجح الاختبار الثالث: قاعدة البيانات رفضت دالة مراجعة طلب الإلغاء لأن الحساب ليس المدير الرئيسي. لم تتغير أي بيانات.';
    output.style.color='#18794e';
   }else if(error){
    output.textContent='لم يثبت الاختبار رفض الصلاحية. رد قاعدة البيانات: '+error.message;
@@ -975,6 +976,8 @@ async function runPaymentReceiptSecurityProbe(){
   button.disabled=false;
  }
 }
+
+
 
 async function runAdminRpcSecurityProbe(){
  const button=document.getElementById('runAdminRpcSecurityProbeButton');
