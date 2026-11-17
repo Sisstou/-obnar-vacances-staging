@@ -380,6 +380,12 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
 .verification-detail-panel input[type=date]{max-width:190px}
 .verification-detail-panel button{margin:4px}
 @media(max-width:600px){.verification-table{font-size:12px}.verification-table th,.verification-table td{padding:9px 8px}}
+
+/* Price range filters — visitor search */
+#search .panel{grid-template-columns:minmax(200px,2fr) repeat(4,minmax(135px,1fr)) auto auto}
+#search #minPriceFilter,#search #maxPriceFilter{min-width:0;width:100%}
+@media(max-width:850px){#search .panel{grid-template-columns:repeat(2,minmax(0,1fr))}#search .panel h2,#search .panel input:first-of-type{grid-column:1/-1}}
+@media(max-width:600px){#search .panel{grid-template-columns:repeat(2,minmax(0,1fr))}#search .panel h2,#search .panel input:first-of-type{grid-column:1/-1}#search #minPriceFilter,#search #maxPriceFilter{font-size:13px;padding:11px 8px}}
 </style>
 </head>
 
@@ -524,7 +530,7 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
 <option value="">كل المناطق</option>
 </select>
 
-<select id="guestFilter">
+<select id="guestFilter" aria-label="عدد الأشخاص">
 <option value="1">شخص واحد على الأقل</option>
 <option value="2">شخصان</option>
 <option value="3">3 أشخاص</option>
@@ -535,8 +541,12 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
 <option value="8">أكثر من 7 أشخاص</option>
 </select>
 
+<input id="minPriceFilter" type="number" min="0" step="100" inputmode="numeric" placeholder="أقل سعر (دج/ليلة)" aria-label="السعر الأدنى بالدينار لليلة" oninput="renderProperties()">
+<input id="maxPriceFilter" type="number" min="0" step="100" inputmode="numeric" placeholder="أعلى سعر (دج/ليلة)" aria-label="السعر الأقصى بالدينار لليلة" oninput="renderProperties()">
+
 <button onclick="loadProperties()">بحث</button>
 <button class="secondary" onclick="resetSearch()">إلغاء البحث</button>
+<p id="priceFilterMessage" class="small" role="status" aria-live="polite" style="grid-column:1/-1;margin:0"></p>
 </div>
 
 <div class="property-categories" aria-label="تصنيف الإقامات">
@@ -4403,6 +4413,17 @@ function renderProperties(){
  const locId = document.getElementById('locationFilter').value;
  const guestChoice=document.getElementById('guestFilter').value;
  const guests=Number(guestChoice);
+ const minPriceValue=document.getElementById('minPriceFilter').value;
+ const maxPriceValue=document.getElementById('maxPriceFilter').value;
+ const minPrice=minPriceValue===''?null:Number(minPriceValue);
+ const maxPrice=maxPriceValue===''?null:Number(maxPriceValue);
+ const priceMessage=document.getElementById('priceFilterMessage');
+ if(minPrice!==null && maxPrice!==null && minPrice>maxPrice){
+  priceMessage.textContent='السعر الأدنى يجب ألا يتجاوز السعر الأقصى.';
+  container.innerHTML='<p style="text-align:center">راجع نطاق السعر المحدد.</p>';
+  return;
+ }
+ priceMessage.textContent='';
 
  const matchingSearch = allProperties.filter(p=>{
 
@@ -4418,7 +4439,9 @@ function renderProperties(){
 
   return (!term || text.includes(term))
    && (!locId || p.location_id===locId)
-   && (guestChoice==='8'?Number(p.capacity)>7:Number(p.capacity)>=guests);
+   && (guestChoice==='8'?Number(p.capacity)>7:Number(p.capacity)>=guests)
+   && (minPrice===null || getPropertyPricing(p).finalPrice>=minPrice)
+   && (maxPrice===null || getPropertyPricing(p).finalPrice<=maxPrice);
 
  });
  const counts={
@@ -4987,6 +5010,9 @@ function resetSearch(){
  document.getElementById('searchText').value = '';
  document.getElementById('locationFilter').value = '';
  document.getElementById('guestFilter').value = '1';
+ document.getElementById('minPriceFilter').value = '';
+ document.getElementById('maxPriceFilter').value = '';
+ document.getElementById('priceFilterMessage').textContent = '';
 
  renderProperties();
 
