@@ -3127,7 +3127,7 @@ async function loadPropertyRequests(){
     ' | المنطقة: '+(property.locations?.name_ar || 'غير محددة')+
     ' | النوع: '+property.property_type+
     ' | السعة: '+property.capacity+
-    ' أشخاص | السعر: '+property.price_per_night+' دج لليلة';
+    ' | السعة: '+formatArabicCapacity(property.capacity)+' | السعر: '+property.price_per_night+' دج لليلة';
    card.appendChild(details);
 
    const roomsInfo = document.createElement('p');
@@ -4507,7 +4507,7 @@ function renderProperties(){
   info.appendChild(place);
 
   const details = document.createElement('p');
-  details.textContent=(p.property_type==='studio'?'استوديو':p.property_type==='apartment'?'شقة - '+p.bedrooms+' غرف':'منزل مستقل - '+p.bedrooms+' غرف')+' | الحمامات: '+p.bathrooms+' | حتى '+p.capacity+' أشخاص';
+  details.textContent=(p.property_type==='studio'?'استوديو':p.property_type==='apartment'?'شقة - '+p.bedrooms+' غرف':'منزل مستقل - '+p.bedrooms+' غرف')+' | الحمامات: '+p.bathrooms+' | حتى '+formatArabicCapacity(p.capacity);
 
   info.appendChild(details);
 
@@ -4738,13 +4738,22 @@ function exportPropertyAvailability(format){
 }
 document.getElementById('availabilityMonth')?.addEventListener('change',renderPropertyAvailabilityCalendar);
 
+function formatArabicCapacity(value){
+ const n=Number(value);
+ if(!Number.isFinite(n)||n<1) return String(value??'');
+ if(n===1) return 'شخص واحد';
+ if(n===2) return 'شخصان';
+ if(n<=10) return n+' أشخاص';
+ return n+' شخصاً';
+}
+
 function openPropertyDetails(property){
  document.getElementById('detailTitle').textContent=property.title_ar||'تفاصيل الإقامة';
  renderPropertyGallery(property.images||[]);
  const body=document.getElementById('detailBody');body.innerHTML='';
  const loc=allLocations.find(l=>l.id===property.location_id);
  const kind=property.property_type==='studio'?'استوديو':property.property_type==='apartment'?'شقة':'منزل مستقل';
- ['الموقع: '+(loc?.name_ar||property.address||'جيجل'),'النوع: '+kind,'عدد الغرف: '+(property.property_type==='studio'?'استوديو':property.bedrooms),'عدد الحمامات: '+property.bathrooms,'السعة: '+property.capacity+' أشخاص','السعر لليلة: '+getPropertyPricing(property).finalPrice.toLocaleString('fr-DZ')+' '+property.currency,property.description_ar||'لا يوجد وصف إضافي.'].forEach(t=>{const p=document.createElement('p');p.textContent=t;body.appendChild(p);});
+ ['الموقع: '+(loc?.name_ar||property.address||'جيجل'),'النوع: '+kind,'عدد الغرف: '+(property.property_type==='studio'?'استوديو':property.bedrooms),'عدد الحمامات: '+property.bathrooms,'السعة: '+formatArabicCapacity(property.capacity),'السعر لليلة: '+getPropertyPricing(property).finalPrice.toLocaleString('fr-DZ')+' '+property.currency,property.description_ar||'لا يوجد وصف إضافي.'].forEach(t=>{const p=document.createElement('p');p.textContent=t;body.appendChild(p);});
  const h=document.createElement('h3');h.textContent='مزايا الإقامة';body.appendChild(h);
  const list=document.createElement('div');list.className='amenities-grid';
  (propertyAmenitiesById[property.id]||[]).forEach(a=>{const item=document.createElement('span');item.className='amenity-option';item.textContent='✓ '+a.name_ar;list.appendChild(item);});
