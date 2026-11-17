@@ -642,6 +642,23 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
  <p id="profileMessage"></p>
 </div>
 
+<div id="accountPasswordChangeArea" class="panel">
+ <h3>🔐 تغيير كلمة المرور</h3>
+ <p class="small">للحماية، سنرسل رمز تحقق إلى بريدك الإلكتروني قبل حفظ كلمة المرور الجديدة.</p>
+ <label class="field-label" for="accountCurrentPassword">كلمة المرور الحالية</label>
+ <input id="accountCurrentPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور الحالية">
+ <label class="field-label" for="accountNewPassword">كلمة المرور الجديدة</label>
+ <input id="accountNewPassword" type="password" minlength="8" autocomplete="new-password" placeholder="8 أحرف على الأقل">
+ <label class="field-label" for="accountConfirmNewPassword">تأكيد كلمة المرور الجديدة</label>
+ <input id="accountConfirmNewPassword" type="password" minlength="8" autocomplete="new-password" placeholder="أعد إدخال كلمة المرور الجديدة">
+ <button type="button" class="secondary" onclick="sendPasswordChangeReauth()">إرسال رمز التحقق إلى بريدي</button>
+ <div id="passwordChangeNonceArea" class="hidden">
+  <label class="field-label" for="passwordChangeNonce">رمز التحقق المرسل إلى بريدك</label>
+  <input id="passwordChangeNonce" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="أدخل رمز التحقق">
+  <button type="button" onclick="updateAccountPassword()">تأكيد تغيير كلمة المرور</button>
+ </div>
+ <p id="accountPasswordChangeMessage" aria-live="polite"></p>
+</div>
 
 <div id="ownerArea">
 <div id="ownerVerificationStatusArea" class="panel hidden"><h3>حالة توثيق حساب المالك</h3><div id="ownerVerificationStatus">جارٍ تحميل حالة التوثيق...</div></div>
@@ -1003,6 +1020,7 @@ const db = window.supabase.createClient(
 
 let currentUser = null;
 let currentProfile = null;
+let passwordChangeReauthRequested = false;
 let myLocalBusinessesLoading = false;
 let allProperties = [];
 let allLocations = [];
@@ -1349,6 +1367,9 @@ async function refreshUser(){
 
 
 function showGuest(){
+ passwordChangeReauthRequested = false;
+ const nonceArea=document.getElementById('passwordChangeNonceArea');
+ if(nonceArea) nonceArea.classList.add('hidden');
  const localBusinessNavLink=document.getElementById('localBusinessNavLink');
  if(localBusinessNavLink) localBusinessNavLink.classList.remove('hidden');
 
@@ -1404,6 +1425,76 @@ async function sendPasswordReset(){
 
  }
 
+}
+
+async function sendPasswordChangeReauth(){
+ const output=document.getElementById('accountPasswordChangeMessage');
+ const nonceArea=document.getElementById('passwordChangeNonceArea');
+ if(!currentUser || !currentUser.email){
+  output.textContent='يجب تسجيل الدخول أولاً.';
+  return;
+ }
+ output.textContent='جارٍ إرسال رمز التحقق إلى بريدك الإلكتروني...';
+ try{
+  const {error}=await db.auth.reauthenticate();
+  if(error) throw error;
+  passwordChangeReauthRequested=true;
+  nonceArea.classList.remove('hidden');
+  document.getElementById('passwordChangeNonce').value='';
+  output.textContent='أرسلنا رمز التحقق إلى بريد حسابك. أدخله لإكمال تغيير كلمة المرور.';
+ }catch(e){
+  passwordChangeReauthRequested=false;
+  output.textContent='تعذر إرسال رمز التحقق: '+e.message;
+ }
+}
+
+async function updateAccountPassword(){
+ const output=document.getElementById('accountPasswordChangeMessage');
+ const currentPassword=document.getElementById('accountCurrentPassword').value;
+ const password=document.getElementById('accountNewPassword').value;
+ const confirmation=document.getElementById('accountConfirmNewPassword').value;
+ const nonce=document.getElementById('passwordChangeNonce').value.trim();
+
+ if(!currentUser){
+  output.textContent='انتهت الجلسة. سجّل الدخول من جديد.';
+  return;
+ }
+ if(!currentPassword){
+  output.textContent='أدخل كلمة المرور الحالية.';
+  return;
+ }
+ if(password.length<8){
+  output.textContent='كلمة المرور الجديدة يجب أن تتكون من 8 أحرف على الأقل.';
+  return;
+ }
+ if(password!==confirmation){
+  output.textContent='كلمتا المرور الجديدتان غير متطابقتين.';
+  return;
+ }
+ if(!passwordChangeReauthRequested || !nonce){
+  output.textContent='أرسل رمز التحقق أولاً ثم أدخله.';
+  return;
+ }
+
+ output.textContent='جارٍ تحديث كلمة المرور...';
+ try{
+  const {error}=await db.auth.updateUser({
+   password,
+   current_password:currentPassword,
+   nonce
+  });
+  if(error) throw error;
+
+  passwordChangeReauthRequested=false;
+  document.getElementById('accountCurrentPassword').value='';
+  document.getElementById('accountNewPassword').value='';
+  document.getElementById('accountConfirmNewPassword').value='';
+  document.getElementById('passwordChangeNonce').value='';
+  document.getElementById('passwordChangeNonceArea').classList.add('hidden');
+  output.textContent='تم تغيير كلمة المرور بنجاح.';
+ }catch(e){
+  output.textContent='تعذر تغيير كلمة المرور: '+e.message;
+ }
 }
 
 async function updateRecoveredPassword(){
