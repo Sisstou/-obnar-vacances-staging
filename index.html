@@ -4356,7 +4356,7 @@ function openBookingForm(property){
  document.getElementById('bookingCheckIn').value = '';
  document.getElementById('bookingCheckOut').value = '';
  document.getElementById('bookingPrice').textContent =
-  'اختر تاريخ الوصول والمغادرة لاحتساب السعر شاملاً عمولة المنصة.';
+  'اختر تاريخ الوصول والمغادرة لاحتساب السعر.';
 
  document.getElementById('bookingMessage').textContent = '';
 
@@ -4391,7 +4391,7 @@ function renderPublicPropertyStrip(){
   const image=document.createElement('img');image.loading='lazy';image.alt='صورة '+(property.title_ar||'الإقامة');image.src=property.cover?.signed_url||'';card.appendChild(image);
   const info=document.createElement('div');info.className='info';const title=document.createElement('h3');title.textContent=property.title_ar||'إقامة معروضة';info.appendChild(title);
   const place=document.createElement('p');place.textContent=location?.name_ar||property.address||'جيجل';info.appendChild(place);
-  const pricing=getPropertyPricing(property);const price=document.createElement('p');price.className='price';price.textContent=pricing.finalPrice.toLocaleString('fr-DZ')+' '+(property.currency||'DZD')+' / الليلة شامل العمولة';info.appendChild(price);
+  const pricing=getPropertyPricing(property);const price=document.createElement('p');price.className='price';price.textContent=pricing.finalPrice.toLocaleString('fr-DZ')+' '+(property.currency||'DZD')+' / الليلة';info.appendChild(price);
   card.appendChild(info);container.appendChild(card);
  });
 }
@@ -4507,7 +4507,7 @@ function renderProperties(){
   const price = document.createElement('p');
   price.className = 'price';
   const pricing=getPropertyPricing(p);
-  price.textContent = pricing.finalPrice.toLocaleString('fr-DZ')+' '+p.currency+' / الليلة شامل العمولة';
+  price.textContent = pricing.finalPrice.toLocaleString('fr-DZ')+' '+p.currency+' / الليلة';
 
     info.appendChild(price);
 
@@ -4721,9 +4721,7 @@ function openPropertyDetails(property){
  const body=document.getElementById('detailBody');body.innerHTML='';
  const loc=allLocations.find(l=>l.id===property.location_id);
  const kind=property.property_type==='studio'?'استوديو':property.property_type==='apartment'?'شقة':'منزل مستقل';
- ['الموقع: '+(loc?.name_ar||property.address||'جيجل'),'النوع: '+kind,'عدد الغرف: '+(property.property_type==='studio'?'استوديو':property.bedrooms),'عدد الحمامات: '+property.bathrooms,'السعة: '+property.capacity+' أشخاص','سعر المالك: '+getPropertyPricing(property).ownerPrice.toLocaleString('fr-DZ')+' '+property.currency+' لليلة',
- 'عمولة المنصة: '+getPropertyPricing(property).commission.toLocaleString('fr-DZ')+' '+property.currency+' لليلة',
- 'السعر النهائي: '+getPropertyPricing(property).finalPrice.toLocaleString('fr-DZ')+' '+property.currency+' لليلة',property.description_ar||'لا يوجد وصف إضافي.'].forEach(t=>{const p=document.createElement('p');p.textContent=t;body.appendChild(p);});
+ ['الموقع: '+(loc?.name_ar||property.address||'جيجل'),'النوع: '+kind,'عدد الغرف: '+(property.property_type==='studio'?'استوديو':property.bedrooms),'عدد الحمامات: '+property.bathrooms,'السعة: '+property.capacity+' أشخاص','السعر لليلة: '+getPropertyPricing(property).finalPrice.toLocaleString('fr-DZ')+' '+property.currency,property.description_ar||'لا يوجد وصف إضافي.'].forEach(t=>{const p=document.createElement('p');p.textContent=t;body.appendChild(p);});
  const h=document.createElement('h3');h.textContent='مزايا الإقامة';body.appendChild(h);
  const list=document.createElement('div');list.className='amenities-grid';
  (propertyAmenitiesById[property.id]||[]).forEach(a=>{const item=document.createElement('span');item.className='amenity-option';item.textContent='✓ '+a.name_ar;list.appendChild(item);});
@@ -4774,7 +4772,6 @@ function calculateBookingPrice(){
  output.textContent =
   'عدد الليالي: '+nights+
   ' | سعر المالك: '+pricing.ownerPrice.toLocaleString('fr-DZ')+' '+selectedProperty.currency+
-  ' | العمولة: '+pricing.commission.toLocaleString('fr-DZ')+' '+selectedProperty.currency+' / ليلة'+
   ' | السعر النهائي لليلة: '+pricing.finalPrice.toLocaleString('fr-DZ')+' '+selectedProperty.currency+
   ' | العربون عند اعتماد الحجز (ليلة واحدة): '+pricing.finalPrice.toLocaleString('fr-DZ')+' '+selectedProperty.currency+
   ' | إجمالي الإقامة: '+total.toLocaleString('fr-DZ')+' '+selectedProperty.currency;
