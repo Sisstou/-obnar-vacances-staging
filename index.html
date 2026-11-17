@@ -1279,7 +1279,7 @@ async function saveMyProfile(){
     message.textContent = 'يرجى إدخال الاسم الكامل';
     return;
   }
-  if(!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
     message.textContent = 'يرجى إدخال بريد إلكتروني صحيح';
     return;
   }
