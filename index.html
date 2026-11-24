@@ -524,8 +524,10 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
 <div class="panel">
 <h2>🔎 البحث عن إقامة</h2>
 
-<input id="searchText" placeholder="المدينة أو المنطقة أو اسم الإقامة">
+<label class="field-label" for="searchText">اسم الإقامة أو المدينة أو المنطقة</label>
+<input id="searchText" type="search" placeholder="ابحث باسم الإقامة أو المنطقة">
 
+<label class="field-label" for="locationFilter">المنطقة</label>
 <select id="locationFilter">
 <option value="">كل المناطق</option>
 </select>
@@ -588,10 +590,14 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
 </select>
 <p id="signupRoleNote" class="signup-role-note" aria-live="polite">يمكنك التسجيل كمصطاف والبدء في البحث عن إقامة.</p>
 
-<input id="fullName" placeholder="الاسم الكامل">
-<input id="phone" placeholder="رقم الهاتف">
-<input id="email" type="email" placeholder="البريد الإلكتروني">
-<input id="password" type="password" placeholder="كلمة المرور (8 أحرف على الأقل)" minlength="8" autocomplete="new-password">
+<label class="field-label" for="fullName">الاسم الكامل</label>
+<input id="fullName" autocomplete="name" placeholder="الاسم الكامل">
+<label class="field-label" for="phone">رقم الهاتف</label>
+<input id="phone" type="tel" autocomplete="tel" placeholder="رقم الهاتف">
+<label class="field-label" for="email">البريد الإلكتروني</label>
+<input id="email" type="email" autocomplete="email" placeholder="البريد الإلكتروني">
+<label class="field-label" for="password">كلمة المرور (8 أحرف على الأقل)</label>
+<input id="password" type="password" placeholder="كلمة المرور" minlength="8" autocomplete="new-password">
 
 <button onclick="signup()">إنشاء حساب</button>
 
@@ -599,8 +605,10 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
 
 <h3>تسجيل الدخول</h3>
 
-<input id="loginEmail" type="email" placeholder="البريد الإلكتروني">
-<input id="loginPassword" type="password" placeholder="كلمة المرور">
+<label class="field-label" for="loginEmail">البريد الإلكتروني</label>
+<input id="loginEmail" type="email" autocomplete="username" placeholder="البريد الإلكتروني">
+<label class="field-label" for="loginPassword">كلمة المرور</label>
+<input id="loginPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور">
 
 <button onclick="login()">دخول</button>
 <button type="button" class="secondary" onclick="sendPasswordReset()">نسيت كلمة المرور؟</button>
@@ -786,13 +794,13 @@ accept="image/jpeg,image/png,image/webp,application/pdf">
 
   <p id="bookingPropertyTitle"></p>
 
-  <label>تاريخ الوصول</label>
+  <label for="bookingCheckIn">تاريخ الوصول</label>
   <input type="date" id="bookingCheckIn">
 
-  <label>تاريخ المغادرة</label>
+  <label for="bookingCheckOut">تاريخ المغادرة</label>
   <input type="date" id="bookingCheckOut">
 
-  <label>عدد الأشخاص</label>
+  <label for="bookingGuests">عدد الأشخاص</label>
   <input type="number" id="bookingGuests" min="1" value="1">
 
   <p id="bookingPrice">السعر الإجمالي: 0 دج</p>
@@ -4660,7 +4668,9 @@ async function confirmBooking(){
  const start = new Date(checkIn+'T00:00:00');
  const end = new Date(checkOut+'T00:00:00');
 
- if(checkIn < new Date().toISOString().slice(0,10) ||
+ const now = new Date();
+ const todayLocal = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+ if(checkIn < todayLocal ||
     end <= start){
   msg('تواريخ الحجز غير صالحة.');
   return;
