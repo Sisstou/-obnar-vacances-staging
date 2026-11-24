@@ -2451,6 +2451,7 @@ async function addPropertyImages(propertyId,currentImages,fileInput,button){
  }
  button.disabled = true;
  const uploadedPaths = [];
+ let imageRowsSaved = false;
  try{
   let order = currentImages.reduce((max,image)=>Math.max(max,Number(image.display_order)||0),-1)+1;
   const rows = [];
@@ -2464,13 +2465,28 @@ async function addPropertyImages(propertyId,currentImages,fileInput,button){
   }
   const {error:insertError} = await db.from('property_images').insert(rows);
   if(insertError) throw insertError;
+  imageRowsSaved = true;
   fileInput.value = '';
   msg('تمت إضافة الصور بنجاح.');
-  await loadOwnerProperties();
-  await loadProperties();
+  try{
+   await loadOwnerProperties();
+   await loadProperties();
+  }catch(refreshError){
+   console.warn('Images saved, but gallery refresh failed:',refreshError);
+   msg('تم حفظ الصور بنجاح، لكن تعذر تحديث المعرض. أعد تحميل قائمة الإقامات دون إعادة رفع الصور.');
+  }
  }catch(e){
-  if(uploadedPaths.length) await db.storage.from('property-images').remove(uploadedPaths);
-  msg('تعذر إضافة الصور: '+e.message);
+  if(uploadedPaths.length && !imageRowsSaved){
+   const cleanup = await db.storage.from('property-images').remove(uploadedPaths);
+   if(cleanup.error){
+    console.error('Image upload rollback failed:',{paths:uploadedPaths,error:cleanup.error});
+    msg('تعذر تسجيل الصور: '+e.message+' — وفشل تنظيف بعض الملفات المرفوعة. أرسل هذه المسارات إلى الإدارة: '+uploadedPaths.join('، '));
+   }else{
+    msg('تعذر إضافة الصور: '+e.message+' — تم تنظيف الملفات التي رُفعت خلال هذه المحاولة.');
+   }
+  }else{
+   msg('تعذر إكمال تحديث الصور: '+e.message+' — تم حفظ سجلات الصور، فلا تعاود رفعها قبل تحديث المعرض.');
+  }
  }finally{
   button.disabled = false;
  }
@@ -2529,7 +2545,7 @@ async function deletePropertyImage(propertyId,imageId,storagePath){
    if(coverError) throw coverError;
   }
   msg(storageError
-   ? 'حُذفت الصورة من القائمة، لكن تعذر حذف ملفها من التخزين. يرجى إبلاغ الإدارة.'
+   ? 'حُذفت الصورة من قائمة الإقامة، لكن بقي ملفها في التخزين. أرسل هذا المسار إلى الإدارة لتنظيفه: '+storagePath+' — '+storageError.message
    : 'تم حذف الصورة وتحديث صورة الغلاف عند الحاجة.');
   await loadOwnerProperties();
   await loadProperties();
