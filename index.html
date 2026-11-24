@@ -2496,17 +2496,28 @@ async function setPropertyCover(propertyId,imageId){
  try{
   const {error:coverError} = await db.from('property_images')
    .update({is_cover:true}).eq('id',imageId).eq('property_id',propertyId);
-  if(coverError) throw coverError;
+  if(coverError) throw new Error('تعذر تعيين الصورة المطلوبة غلافاً: '+coverError.message);
   const {error:otherError} = await db.from('property_images')
    .update({is_cover:false}).eq('property_id',propertyId).neq('id',imageId);
-  if(otherError) throw otherError;
+  if(otherError){
+   msg('تم تعيين الصورة المطلوبة غلافاً، لكن تعذر إلغاء علامة الغلاف عن بقية الصور. قد توجد أكثر من صورة غلاف؛ أبلغ الإدارة. التفاصيل: '+otherError.message);
+   return;
+  }
   msg('تم تحديث صورة الغلاف.');
+ }catch(e){
+  msg('تعذر إكمال تغيير صورة الغلاف: '+e.message);
+  return;
+ }
+ try{
   await loadOwnerProperties();
   await loadProperties();
- }catch(e){ msg('تعذر تغيير صورة الغلاف: '+e.message); }
+ }catch(e){
+  msg('تم حفظ تغيير صورة الغلاف، لكن تعذر تحديث عرض الصور. أعد تحديث الصفحة. التفاصيل: '+e.message);
+ }
 }
 
 async function movePropertyImage(propertyId,imageId,direction){
+ let firstUpdated = false;
  try{
   const {data:images,error} = await db.from('property_images')
    .select('id,display_order').eq('property_id',propertyId).order('display_order');
@@ -2518,15 +2529,28 @@ async function movePropertyImage(propertyId,imageId,direction){
   const firstOrder = Number(list[index].display_order)||0;
   const secondOrder = Number(list[target].display_order)||0;
   const {error:firstError} = await db.from('property_images')
-   .update({display_order:secondOrder}).eq('id',list[index].id);
+   .update({display_order:secondOrder}).eq('id',list[index].id).eq('property_id',propertyId);
   if(firstError) throw firstError;
+  firstUpdated = true;
   const {error:secondError} = await db.from('property_images')
-   .update({display_order:firstOrder}).eq('id',list[target].id);
-  if(secondError) throw secondError;
+   .update({display_order:firstOrder}).eq('id',list[target].id).eq('property_id',propertyId);
+  if(secondError){
+   msg('تغيّر ترتيب الصورة الأولى، لكن تعذر إكمال تبديل الصورتين. قد يكون الترتيب غير مكتمل؛ أبلغ الإدارة قبل إعادة المحاولة. التفاصيل: '+secondError.message);
+   return;
+  }
   msg('تم تغيير ترتيب الصور.');
+ }catch(e){
+  msg(firstUpdated
+   ? 'تم تنفيذ جزء من تغيير الترتيب فقط؛ قد يكون ترتيب الصور غير مكتمل. التفاصيل: '+e.message
+   : 'تعذر تغيير ترتيب الصور: '+e.message);
+  return;
+ }
+ try{
   await loadOwnerProperties();
   await loadProperties();
- }catch(e){ msg('تعذر تغيير الترتيب: '+e.message); }
+ }catch(e){
+  msg('تم حفظ ترتيب الصور، لكن تعذر تحديث العرض. أعد تحديث الصفحة. التفاصيل: '+e.message);
+ }
 }
 
 async function deletePropertyImage(propertyId,imageId,storagePath){
@@ -2535,21 +2559,37 @@ async function deletePropertyImage(propertyId,imageId,storagePath){
   const {error:deleteError} = await db.from('property_images')
    .delete().eq('id',imageId).eq('property_id',propertyId);
   if(deleteError) throw deleteError;
+ }catch(e){
+  msg('تعذر حذف سجل الصورة: '+e.message);
+  return;
+ }
+ let storageMessage = '';
+ try{
   const {error:storageError} = await db.storage.from('property-images').remove([storagePath]);
+  if(storageError) storageMessage = ' بقي ملف الصورة في التخزين؛ أرسل المسار إلى الإدارة لتنظيفه: '+storagePath+' — '+storageError.message;
+ }catch(e){
+  storageMessage = ' تعذر تأكيد حذف ملف التخزين؛ أرسل المسار إلى الإدارة للتحقق: '+storagePath+' — '+e.message;
+ }
+ let coverMessage = '';
+ try{
   const {data:remaining,error:readError} = await db.from('property_images')
    .select('id,is_cover,display_order').eq('property_id',propertyId).order('display_order');
   if(readError) throw readError;
   if(remaining && remaining.length && !remaining.some(image=>image.is_cover)){
    const {error:coverError} = await db.from('property_images')
-    .update({is_cover:true}).eq('id',remaining[0].id);
+    .update({is_cover:true}).eq('id',remaining[0].id).eq('property_id',propertyId);
    if(coverError) throw coverError;
   }
-  msg(storageError
-   ? 'حُذفت الصورة من قائمة الإقامة، لكن بقي ملفها في التخزين. أرسل هذا المسار إلى الإدارة لتنظيفه: '+storagePath+' — '+storageError.message
-   : 'تم حذف الصورة وتحديث صورة الغلاف عند الحاجة.');
+ }catch(e){
+  coverMessage = ' تعذر التحقق من صورة الغلاف أو تحديثها تلقائياً؛ راجع الإقامة يدوياً. التفاصيل: '+e.message;
+ }
+ msg('حُذف سجل الصورة من الإقامة.'+storageMessage+coverMessage);
+ try{
   await loadOwnerProperties();
   await loadProperties();
- }catch(e){ msg('تعذر حذف الصورة: '+e.message); }
+ }catch(e){
+  msg('تم حذف سجل الصورة، لكن تعذر تحديث المعرض المعروض. أعد تحديث الصفحة. التفاصيل: '+e.message);
+ }
 }
 
 async function submitSavedProperty(){
