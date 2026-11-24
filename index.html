@@ -718,7 +718,8 @@ accept="image/jpeg,image/png,image/webp,application/pdf">
   <h4>2. الغرف والسعة والسعر</h4>
   <label class="field-label" for="propertyBedroomsSelect">عدد غرف الشقة</label>
   <select id="propertyBedroomsSelect"><option value="2">غرفتان</option><option value="3" selected>3 غرف</option><option value="4">4 غرف</option></select>
-  <input id="propertyBedroomsHouse" class="hidden" type="number" min="1" step="1" value="3" placeholder="أدخل عدد غرف المنزل">
+  <label class="field-label" for="propertyBedroomsHouse">عدد غرف المنزل</label>
+   <input id="propertyBedroomsHouse" class="hidden" type="number" min="1" step="1" value="3" placeholder="أدخل عدد غرف المنزل">
   <label class="field-label" for="propertyBathrooms">عدد الحمامات</label>
   <input id="propertyBathrooms" type="number" min="0" step="1" value="1">
   <label class="field-label" for="propertyCapacitySelect">السعة القصوى</label>
@@ -727,7 +728,8 @@ accept="image/jpeg,image/png,image/webp,application/pdf">
    <option value="4">4 أشخاص</option><option value="5">5 أشخاص</option><option value="6">6 أشخاص</option>
    <option value="7">7 أشخاص</option><option value="more">أكثر من 7 أشخاص</option>
   </select>
-  <input id="propertyCapacityMore" class="hidden" type="number" min="8" step="1" placeholder="أدخل العدد الفعلي (8 أو أكثر)">
+  <label class="field-label" for="propertyCapacityMore">أدخل السعة الفعلية</label>
+   <input id="propertyCapacityMore" class="hidden type="number" min="8" step="1" placeholder="أدخل العدد الفعلي (8 أو أكثر)">
   <label class="field-label" for="propertyPrice">السعر لليلة بالدينار</label>
   <input id="propertyPrice" type="number" min="0" step="100" placeholder="مثال: 5000">
  </div>
