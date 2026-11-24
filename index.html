@@ -619,7 +619,9 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
 <div id="passwordRecoveryArea" class="panel hidden">
 <h3>🔐 تعيين كلمة مرور جديدة</h3>
 <p>أدخل كلمة مرور جديدة لحسابك.</p>
+<label class="field-label" for="newPassword">كلمة المرور الجديدة</label>
 <input id="newPassword" type="password" placeholder="كلمة المرور الجديدة (8 أحرف على الأقل)" minlength="8" autocomplete="new-password">
+<label class="field-label" for="confirmNewPassword">تأكيد كلمة المرور الجديدة</label>
 <input id="confirmNewPassword" type="password" placeholder="تأكيد كلمة المرور الجديدة" minlength="8" autocomplete="new-password">
 <button type="button" onclick="updateRecoveredPassword()">حفظ كلمة المرور الجديدة</button>
 </div>
@@ -645,7 +647,8 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
 <div id="profileEditFields" class="hidden">
  <p id="profileDisplayName" class="small">Khebbache</p>
  <input id="editFullName" type="hidden">
- <input id="editPhone" type="tel" placeholder="رقم الهاتف">
+ <label class="field-label" for="editPhone">رقم الهاتف</label>
+<input id="editPhone" type="tel" placeholder="رقم الهاتف">
  <label class="field-label" for="editEmail">البريد الإلكتروني</label>
  <input id="editEmail" type="email" autocomplete="email" placeholder="البريد الإلكتروني">
  <button type="button" onclick="saveMyProfile()">حفظ التعديلات</button>
@@ -677,6 +680,7 @@ button.secondary{background:#edf1f2;color:#29485c;box-shadow:none}
 <h3>طلب توثيق المالك</h3>
 <p class="small">ارفع وثيقة تثبت صفتك كمالك. لا يمكن نشر إقامة قبل موافقة الإدارة.</p>
 
+<label class="field-label" for="ownerDocument">وثيقة إثبات صفة المالك</label>
 <input id="ownerDocument" type="file"
 accept="image/jpeg,image/png,image/webp,application/pdf">
 <label class="field-label" for="ownerDocumentExpiry">تاريخ انتهاء الوثيقة (اختياري)</label><input id="ownerDocumentExpiry" type="date">
@@ -748,7 +752,8 @@ accept="image/jpeg,image/png,image/webp,application/pdf">
  <div class="owner-form-section full">
   <h4>5. صور الإقامة</h4>
   <p class="small">أضف صوراً واضحة. الحد الأقصى 10 صور، و5 ميغابايت لكل صورة.</p>
-  <input id="propertyPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+  <label class="field-label" for="propertyPhotos">صور الإقامة</label>
+<input id="propertyPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
  </div>
 </div>
 <div class="owner-form-actions">
