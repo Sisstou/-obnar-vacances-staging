@@ -1869,16 +1869,23 @@ async function submitVerification(){
 
   if(insertError){
 
-   await db.storage.from('owner-documents').remove([path]);
+   const cleanup = await db.storage.from('owner-documents').remove([path]);
+   if(cleanup.error){
+    throw new Error(insertError.message+' — وتعذر تنظيف الملف المرفوع. احتفظ بهذا المسار لإرساله إلى الإدارة: '+path+' ('+cleanup.error.message+')');
+   }
    throw insertError;
 
   }
 
-  msg('تم إرسال طلب التوثيق بنجاح. طلبك قيد المراجعة.');
-  await loadOwnerSignupVerificationStatus();
-
   document.getElementById('ownerDocument').value = '';
   document.getElementById('ownerDocumentExpiry').value = '';
+  msg('تم إرسال طلب التوثيق بنجاح. طلبك قيد المراجعة.');
+  try{
+   await loadOwnerSignupVerificationStatus();
+  }catch(refreshError){
+   console.warn('Verification submitted, but status refresh failed:',refreshError);
+   msg('تم إرسال طلب التوثيق بنجاح، لكن تعذر تحديث الحالة المعروضة. أعد تحميل الحالة لاحقاً دون إعادة إرسال الوثيقة.');
+  }
 
  }catch(e){
 
@@ -2097,6 +2104,8 @@ function capacityTextIsValid(choice,value){
 
 async function createProperty(mode = 'submit'){
 
+ let createdPropertyId = null;
+ let propertyStage = 'التحقق من البيانات';
  try{
 
   if(!currentUser || !currentProfile || currentProfile.role !== 'owner'){
@@ -2157,6 +2166,7 @@ async function createProperty(mode = 'submit'){
 
   if(googleMapsUrl){let u;try{u=new URL(googleMapsUrl);}catch(_){throw new Error('رابط Google Maps غير صالح.');}if(u.protocol!=='https:'||!(u.hostname==='google.com'||u.hostname.endsWith('.google.com')||u.hostname==='maps.app.goo.gl'))throw new Error('أدخل رابط Google Maps صحيحاً يبدأ بـ https.');}
   msg('جارٍ إنشاء الإقامة...');
+  propertyStage = 'إنشاء سجل الإقامة';
 
   const {data:property,error:insertError} = await db
    .from('properties')
@@ -2182,8 +2192,10 @@ async function createProperty(mode = 'submit'){
    .single();
 
   if(insertError) throw insertError;
+  createdPropertyId = property.id;
 
   const imageRows = [];
+  if(photos.length) propertyStage = 'رفع صور الإقامة';
 
   for(let i=0;i<photos.length;i++){
 
@@ -2210,16 +2222,23 @@ async function createProperty(mode = 'submit'){
   }
 
   if(imageRows.length){
+   propertyStage = 'تسجيل بيانات الصور';
    const {error:imageError} = await db
     .from('property_images')
     .insert(imageRows);
    if(imageError) throw imageError;
   }
-  if(selectedAmenities.length){const rows=selectedAmenities.map(amenity_id=>({property_id:property.id,amenity_id}));const {error:amenityError}=await db.from('property_amenities').insert(rows);if(amenityError)throw amenityError;}
+  if(selectedAmenities.length){
+   propertyStage = 'تسجيل مزايا الإقامة';
+   const rows=selectedAmenities.map(amenity_id=>({property_id:property.id,amenity_id}));
+   const {error:amenityError}=await db.from('property_amenities').insert(rows);
+   if(amenityError)throw amenityError;
+  }
 
   if(saveAsDraft){
    msg('تم حفظ الإقامة كمسودة. لن تظهر للزوار ولن تُرسل إلى الإدارة حتى تضغط إرسال للمراجعة.');
   }else{
+   propertyStage = 'إرسال الإقامة للمراجعة';
    const {error:submitError} = await db
     .from('properties')
     .update({status:'pending'})
@@ -2231,11 +2250,21 @@ async function createProperty(mode = 'submit'){
   }
 
   document.getElementById('propertyPhotos').value = '';
-  await loadOwnerProperties();
+  try{
+   await loadOwnerProperties();
+  }catch(refreshError){
+   console.warn('Property saved, but owner list refresh failed:',refreshError);
+   msg('تم حفظ الإقامة، لكن تعذر تحديث قائمة إقاماتك. أعد تحميل القائمة دون إنشاء إقامة أخرى.');
+  }
 
  }catch(e){
-
-  msg('تعذر إضافة الإقامة: '+e.message);
+  if(createdPropertyId){
+   console.error('Property creation stopped after a partial save:',{propertyId:createdPropertyId,stage:propertyStage,error:e});
+   msg('توقفت العملية أثناء: '+propertyStage+'. قد يكون سجل الإقامة محفوظاً كمسودة. رقم الإقامة: '+createdPropertyId+'. لم نحذف أي بيانات أو ملفات تلقائياً. راجع قائمة إقاماتك قبل إعادة المحاولة. التفاصيل: '+e.message);
+   try{await loadOwnerProperties();}catch(refreshError){console.warn('Could not refresh properties after partial save:',refreshError);}
+  }else{
+   msg('تعذر إضافة الإقامة أثناء '+propertyStage+': '+e.message);
+  }
 
  }
 
